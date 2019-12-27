@@ -1,7 +1,7 @@
 package main
 
 import (
-	"advent_of_code/day20/part1"
+	"github.com/mbordner/advent_of_code_2019/day20/part1"
 	"errors"
 	"fmt"
 	"os"
