@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"regexp"
 	"strconv"
@@ -86,44 +87,100 @@ func part1() {
 	}
 }
 
-func equal(a, b []int64) bool {
-	if len(a) != len(b) {
-		return false
+
+func polypow(a,b,n,m int64) (int64,int64) {
+	M := big.NewInt(m)
+
+	if n == 0 {
+		return 1,0
+	} else if n%2 == 0 {
+
+		X := big.NewInt(a)
+		X = X.Mul(X,X).Mod(X,M)
+
+		Y := big.NewInt(a)
+		Y = Y.Mul(Y,big.NewInt(b)).Add(Y,big.NewInt(b)).Mod(Y,M)
+
+		return polypow(X.Int64(),Y.Int64(),n/2,m)
+	} else {
+		c,d := polypow(a,b,n-1,m)
+
+		X := big.NewInt(a)
+		Y := big.NewInt(a)
+
+		return X.Mul(X,big.NewInt(c)).Mod(X,M).Int64(),
+			Y.Mul(Y,big.NewInt(d)).Add(Y,big.NewInt(b)).Mod(Y,M).Int64()
 	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
+
+
+func calculateInverseFunctionCoefficients(m int64, shuffles []string) (a,b int64) {
+	// convert rules to linear polynomial.
+	// (g∘f)(x) = g(f(x))
+	a, b = int64(1),int64(0)
+
+	M := big.NewInt(m)
+
+	for i := len(shuffles) - 1; i >= 0; i-- {
+		if matches := reCut.FindStringSubmatch(shuffles[i]); len(matches) > 0 {
+			n, e := strconv.ParseInt(matches[1], 10, 64)
+			if e != nil {
+				panic(e)
+			}
+
+			b = (b+n)%m
+
+		} else if matches := reDealNew.FindStringSubmatch(shuffles[i]); len(matches) > 0 {
+
+			a = -a
+			b = m-b-1
+
+		} else if matches := reDealWInc.FindStringSubmatch(shuffles[i]); len(matches) > 0 {
+			n, e := strconv.ParseInt(matches[1], 10, 64)
+			if e != nil {
+				panic(e)
+			}
+
+			N := big.NewInt(n)
+			Z := N.ModInverse(N,M)
+			A := big.NewInt(a)
+			B := big.NewInt(b)
+
+			/**
+			func (z *Int) ModInverse(g, n *Int) *Int
+			ModInverse sets z to the multiplicative inverse of g in the ring ℤ/nℤ and returns z. If g and n are not relatively prime, g has no multiplicative inverse in the ring ℤ/nℤ. In this case, z is unchanged and the return value is nil.
+			 */
+
+			if Z == nil {
+				panic(errors.New("couldn't find an inverse"))
+			}
+
+			A = A.Mul(A,Z).Mod(A,M)
+			B = B.Mul(B,Z).Mod(B,M)
+
+			a = A.Int64()
+			b = B.Int64()
+		}
+
+	}
+
+	return a,b
+}
+
+
 func main() {
-	shuffles := getShuffles("input.txt")
-	nums := []int64{10007, 10009, 10037, 10039, 10061, 10067, 10069, 10079, 10091, 10093, 10099, 10103, 10111, 10133}
+	decksize := int64(119315717514047)
+	numShuffles := int64(101741582076661)
 
-	for _, v := range nums {
-		deck := createDeck(v)
-		deck = shuffle(deck, shuffles)
-		fmt.Println("prime: ",v," with differing sequence of: ",deck[1]-deck[0],deck[2]-deck[1],deck[3]-deck[2],deck[4]-deck[3],deck[5]-deck[4],deck[6]-deck[5])
-	}
+	a,b := calculateInverseFunctionCoefficients(decksize,getShuffles("input.txt"))
+	a,b = polypow(a,b,numShuffles,decksize)
 
-	deck := createDeck(10007)
-	deck = shuffle(deck, shuffles)
+	A := big.NewInt(a)
+	A = A.Mul(A,big.NewInt(int64(2020))).Add(A,big.NewInt(b)).Mod(A,big.NewInt(decksize))
 
 
-
-
-
-
-	for i:=len(deck)-1; i > 0; i-- {
-		fmt.Print(deck[i]-deck[i-1]," ")
-	}
-
-
-
-	//deck = createDeck(int64(119315717514047))
-	//deck = shuffle(deck,shuffles)
+	fmt.Println(A.Int64())
 
 }
 
