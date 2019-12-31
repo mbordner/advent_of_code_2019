@@ -1,8 +1,8 @@
 package djikstra
 
 import (
-	"github.com/mbordner/advent_of_code_2019/day20/graph"
 	hp "container/heap"
+	"github.com/mbordner/advent_of_code_2019/day20/graph"
 	"math"
 )
 
@@ -17,6 +17,10 @@ type NodeValue struct {
 type ShortestPaths map[interface{}]*NodeValue
 
 func (sps ShortestPaths) GetShortestPath(n *graph.Node) ([]*graph.Node, float64) {
+
+	if _, ok := sps[n.GetID()]; !ok {
+		return nil, float64(0)
+	}
 
 	current := sps[n.GetID()].Node
 	value := float64(0)
@@ -132,25 +136,27 @@ func GenerateShortestPaths(g *graph.Graph, source *graph.Node) ShortestPaths {
 
 		for _, e := range current.Node.GetTraversableEdges() {
 
-			// we don't want to explore edge destinations that already have been visited, i.e. removed from nvh
-			if sps[e.GetDestination().GetID()].visited == false {
+			if _, ok := sps[e.GetDestination().GetID()]; ok {
+				// we don't want to explore edge destinations that already have been visited, i.e. removed from nvh
+				if sps[e.GetDestination().GetID()].visited == false {
 
-				// get the edge node value (env) for this edge's destination node
-				env := sps[e.GetDestination().GetID()]
+					// get the edge node value (env) for this edge's destination node
+					env := sps[e.GetDestination().GetID()]
 
-				// this value is the cost up to current node + cost to destination from current
-				value := current.Value + e.GetValue()
+					// this value is the cost up to current node + cost to destination from current
+					value := current.Value + e.GetValue()
 
-				// check if this new value is less than anything we found before
-				if value < env.Value {
-					// we found a shorter path from source -> e.destination through current
+					// check if this new value is less than anything we found before
+					if value < env.Value {
+						// we found a shorter path from source -> e.destination through current
 
-					env.Value = value
-					env.PreviousNode = current.Node
-					// need to reorder the heap after this change
-					nvh.fix(env)
+						env.Value = value
+						env.PreviousNode = current.Node
+						// need to reorder the heap after this change
+						nvh.fix(env)
+					}
+
 				}
-
 			}
 
 		}

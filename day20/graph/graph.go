@@ -1,14 +1,21 @@
 package graph
 
+import "fmt"
+
 type Edge struct {
 	source      *Node
 	destination *Node
 	value       float64
 	properties  map[string]interface{}
+	traversable bool
 }
 
 func (e *Edge) IsTraversable() bool {
-	return e.destination.IsTraversable()
+	return e.traversable && e.destination != nil && e.destination.IsTraversable()
+}
+
+func (e *Edge) SetTraversable(b bool) {
+	e.traversable = b
 }
 
 func (e *Edge) GetSource() *Node {
@@ -17,6 +24,10 @@ func (e *Edge) GetSource() *Node {
 
 func (e *Edge) GetDestination() *Node {
 	return e.destination
+}
+
+func (e *Edge) SetDestination(o *Node) {
+	e.destination = o
 }
 
 func (e *Edge) GetValue() float64 {
@@ -39,6 +50,10 @@ type Node struct {
 	edges       []*Edge
 	properties  map[string]interface{}
 	traversable bool
+}
+
+func (n Node) String() string {
+	return fmt.Sprintf("%v, %v", n.id, n.properties)
 }
 
 func (n *Node) GetID() interface{} {
@@ -82,13 +97,14 @@ func (n *Node) SetTraversable(b bool) {
 	n.traversable = b
 }
 
-func (n *Node) AddEdge(o *Node, w float64) {
-	e := Edge{source: n, destination: o, value: w}
+func (n *Node) AddEdge(o *Node, w float64) *Edge {
+	e := Edge{source: n, destination: o, value: w, traversable: true}
 	e.properties = make(map[string]interface{})
 	if n.edges == nil {
 		n.edges = make([]*Edge, 0, 8)
 	}
 	n.edges = append(n.edges, &e)
+	return &e
 }
 
 type Graph struct {
@@ -139,4 +155,10 @@ func (g *Graph) GetTraversableNodes() []*Node {
 		}
 	}
 	return ns
+}
+
+func (g *Graph) Merge(og *Graph) {
+	for id, n := range og.nodes {
+		g.nodes[id] = n
+	}
 }
